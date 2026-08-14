@@ -4,6 +4,8 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
 
 import pygame, random
 from config.settings import TILE_COLORS, TILE_SIZE, MARGIN, GRID_SIZE
+from src.logger import log_event
+from src.assets_loader import load_font
 import numpy as np
 
 def move_left(grid):
@@ -45,18 +47,21 @@ def move_down(grid):
     return moved
 
 def merge_row(row):
+    # Compress non-zero tiles, then merge adjacent equal tiles once.
+    # A tile produced by a merge must NOT merge again in the same move, so the
+    # merged element is zeroed and skipped by the overlap check.
     new_row = [num for num in row if num != 0]
-    merged = False
     for i in range(1, len(new_row)):
         if new_row[i] == new_row[i - 1]:
             new_row[i - 1] *= 2
             new_row[i] = 0
-            merged = True
     new_row = [num for num in new_row if num != 0]
-    if len(new_row) < len(row):
-        merged = True
-    row[:] = new_row + [0] * (len(row) - len(new_row))
-    return merged
+    # Pad with zeros back to the original row length.
+    new_row += [0] * (len(row) - len(new_row))
+    # A row only "moved" if its contents actually changed (slid or merged).
+    changed = new_row != list(row)
+    row[:] = new_row
+    return changed
 
 def get_max_value(grid):
     """
@@ -102,7 +107,7 @@ def add_random_tile(grid):
     empty_tiles = [(r, c) for r in range(len(grid)) for c in range(len(grid[r])) if grid[r][c] == 0]
     
     if not empty_tiles:
-        print("没有空白格子了!")
+        log_event("No empty cells available; cannot add a tile.")
         return False  # 没有空位，返回 False
     
     # 获取当前网格中的最大值
@@ -121,33 +126,57 @@ def add_random_tile(grid):
     return True
 
 
+# Cache rendered fonts by pixel size so we create them once, not per tile per frame.
+# Cached Font objects are only valid while the pygame font subsystem is initialized;
+# calling pygame.quit() frees them, so the cache must be cleared on restart to avoid
+# reusing freed SDL memory (a use-after-free segfault).
+_font_cache = {}
+
+def reset_font_cache():
+    """Drop all cached fonts. Call after pygame.quit() / a fresh pygame.init()."""
+    _font_cache.clear()
+
+def _get_font(size):
+    """Return a cached font object, preferring the bundled game font."""
+    if size not in _font_cache:
+        font = load_font(size)
+        if font is None:
+            font = pygame.font.Font(None, size)  # fall back to default pygame font
+        _font_cache[size] = font
+    return _font_cache[size]
+
+def _font_size_for(value):
+    """Scale the font size so large numbers still fit inside a tile."""
+    return max(12, int(TILE_SIZE * 0.8 / max(1, len(str(value)))))
+
 # Draw the grid and its tiles
 def draw_grid(screen, grid):
-    for r in range(8):
-        for c in range(8):
+    for r in range(GRID_SIZE):
+        for c in range(GRID_SIZE):
             value = grid[r][c]
             rect = pygame.Rect(c * (TILE_SIZE + MARGIN) + MARGIN, r * (TILE_SIZE + MARGIN) + MARGIN, TILE_SIZE, TILE_SIZE)
             color = TILE_COLORS.get(value, (60, 58, 50))  # Default color for large numbers
             pygame.draw.rect(screen, color, rect)  # Color tiles based on their value
             if value != 0:
-                font = pygame.font.Font(None, 36)
+                font = _get_font(_font_size_for(value))
                 text = font.render(str(value), True, (0, 0, 0))
                 text_rect = text.get_rect(center=rect.center)
                 screen.blit(text, text_rect)
                 
 # Check if the game is over (no empty tiles and no mergeable tiles)
 def is_game_over(grid):
+    size = min(len(grid), GRID_SIZE)
     # Check if there are any empty tiles
-    empty_tiles = [(r, c) for r in range(8) for c in range(8) if grid[r][c] == 0]
+    empty_tiles = [(r, c) for r in range(size) for c in range(size) if grid[r][c] == 0]
     if empty_tiles:
         return False
 
     # Check for possible merges in rows and columns
-    for r in range(8):
-        for c in range(8):
-            if c < 7 and grid[r][c] == grid[r][c+1]:
+    for r in range(size):
+        for c in range(size):
+            if c < size - 1 and grid[r][c] == grid[r][c+1]:
                 return False  # Adjacent columns can merge
-            if r < 7 and grid[r][c] == grid[r+1][c]:
+            if r < size - 1 and grid[r][c] == grid[r+1][c]:
                 return False  # Adjacent rows can merge
 
     return True  # No empty tiles and no merges possible
