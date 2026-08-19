@@ -1,6 +1,5 @@
 # src/utils.py
-import sys,os
-sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
+from src import pathsetup  # noqa: F401  (ensure repo root is importable)
 
 def reset_game(grid):
     for row in range(len(grid)):

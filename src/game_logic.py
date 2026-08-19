@@ -1,7 +1,6 @@
 # src/game_logic.py
+from src import pathsetup  # noqa: F401  (ensure repo root is importable)
 import math
-import sys,os
-sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
 
 import pygame, random
 from config.settings import TILE_COLORS, TILE_SIZE, MARGIN, GRID_SIZE

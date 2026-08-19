@@ -1,6 +1,5 @@
 # src/game.py
-import sys,os
-sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
+from src import pathsetup  # noqa: F401  (ensure repo root is importable)
 
 import pygame
 from config.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, WHITE, BLACK, GRID_SIZE
