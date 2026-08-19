@@ -18,7 +18,7 @@ from src.game_logic import (
     add_random_tile,
     is_game_over,
     get_max_value,
-    poisson_probabilities,
+    _spawn_weights,
 )
 
 
@@ -113,17 +113,24 @@ def test_no_random_costly_moves_do_not_change_board():
     assert g == before
 
 
-def test_poisson_probabilities_normalize_to_one():
+def test_spawn_weights_normalize_and_bounded():
+    import math
     for m in (2, 4, 16, 256, 2048):
-        vals, probs = poisson_probabilities(m)
-        assert len(vals) == len(probs)
-        assert all(p >= 0 for p in probs)
-        assert abs(sum(probs) - 1.0) < 1e-9
-        # values must be powers of two, max <= m
-        import math
+        vals, weights = _spawn_weights(m)
+        assert len(vals) == len(weights)
+        assert all(w > 0 for w in weights)
+        assert abs(sum(weights) - 1.0) < 1e-9
         for v in vals:
             assert v == 2 ** int(math.log2(v))
             assert v <= m
+
+
+def test_spawn_weights_strictly_decreasing():
+    # Larger tiles are strictly rarer.
+    vals, weights = _spawn_weights(2048)
+    assert len(vals) >= 2
+    for i in range(1, len(weights)):
+        assert weights[i] < weights[i - 1]
 
 
 def main():

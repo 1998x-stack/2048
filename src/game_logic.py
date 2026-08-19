@@ -1,4 +1,5 @@
 # src/game_logic.py
+import math
 import sys,os
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
 
@@ -6,7 +7,6 @@ import pygame, random
 from config.settings import TILE_COLORS, TILE_SIZE, MARGIN, GRID_SIZE
 from src.logger import log_event
 from src.assets_loader import load_font
-import numpy as np
 
 def move_left(grid):
     moved = False
@@ -69,28 +69,22 @@ def get_max_value(grid):
     """
     return max(max(max(row) for row in grid), 2)
 
-def poisson_probabilities(max_value):
-    """
-    生成 2 的指数数字的泊松分布概率。
-    
-    Args:
-        max_value (int): 当前网格中的最大数字。
-    
-    Returns:
-        list: 包含可能生成的 2 的指数及其泊松分布概率。
-    """
-    powers_of_two = [2**i for i in range(1, int(np.log2(max_value)) + 1)]  # 生成从2到最大值的2的指数
-    lambda_value = len(powers_of_two) / 2  # 泊松分布的λ值，数字越大概率越低
-    probabilities = np.random.poisson(lambda_value, len(powers_of_two))
-    
-    # 正规化概率为 0 到 1 之间
-    total_prob = sum(probabilities)
-    if total_prob == 0:
-        probabilities = [1/len(probabilities)] * len(probabilities)  # 避免全零的情况
-    else:
-        probabilities = [p / total_prob for p in probabilities]  # 正规化
+def _spawn_weights(max_value):
+    """Return (values, weights) for powers of two up to max_value.
 
-    return powers_of_two, probabilities
+    weight(2**i) = 2**(1-i): larger values are strictly rarer. The list is
+    normalized so weights sum to 1. max_value >= 2, so there is always at
+    least [2] with weight 1.0.
+    """
+    k = max(1, int(math.log2(max_value)))
+    values = [2 ** i for i in range(1, k + 1)]
+    weights = [2 ** (1 - i) for i in range(1, k + 1)]
+    total = sum(weights)
+    if total == 0:
+        weights = [1.0 / len(values)] * len(values)
+    else:
+        weights = [w / total for w in weights]
+    return values, weights
 
 # Add a random tile (2 or 4) to an empty spot on the grid
 def add_random_tile(grid):
@@ -113,8 +107,8 @@ def add_random_tile(grid):
     # 获取当前网格中的最大值
     max_value = get_max_value(grid)
     
-    # 生成基于泊松分布的可能数字和其概率
-    possible_values, probabilities = poisson_probabilities(max_value)
+    # 生成可能数字及其确定性递减权重
+    possible_values, probabilities = _spawn_weights(max_value)
     
     # 根据泊松分布的概率随机选择一个数字
     new_value = random.choices(possible_values, probabilities)[0]
