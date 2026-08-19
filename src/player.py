@@ -1,6 +1,6 @@
 # src/player.py
-import sys,os
-sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 import pygame
 from config.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, IMAGE_PATH

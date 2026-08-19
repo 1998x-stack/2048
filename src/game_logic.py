@@ -1,5 +1,7 @@
 # src/game_logic.py
-from src import pathsetup  # noqa: F401  (ensure repo root is importable)
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+
 import math
 
 import pygame, random
@@ -109,7 +111,7 @@ def add_random_tile(grid):
     # 生成可能数字及其确定性递减权重
     possible_values, probabilities = _spawn_weights(max_value)
     
-    # 根据泊松分布的概率随机选择一个数字
+    # Choose a value weighted so larger tiles are rarer (see _spawn_weights)
     new_value = random.choices(possible_values, probabilities)[0]
     
     # 随机选择一个空格，并将新值放入该位置
