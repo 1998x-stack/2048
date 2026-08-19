@@ -19,7 +19,7 @@ if "pygame" not in sys.modules:
     mock.draw = types.SimpleNamespace(rect=lambda *a, **k: None)
     sys.modules["pygame"] = mock
 
-from src.game_logic import merge_row, move_left, move_right, move_up, move_down
+from src.game_logic import merge_row, move_left, move_right, move_up, move_down, add_random_tile
 
 
 def test_merge_basic_pair():
@@ -108,6 +108,21 @@ def test_move_up_and_down():
     g_down[0][0] = 2
     assert move_down(g_down) is True
     assert g_down[7][0] == 4
+
+
+def _seed_spawn_once(grid):
+    import random
+    add_random_tile(grid)
+    return tuple(tuple(row) for row in grid)
+
+
+def test_add_random_tile_deterministic_under_seed():
+    import random
+    random.seed(7)
+    a = _seed_spawn_once([[0] * 8 for _ in range(8)])
+    random.seed(7)
+    b = _seed_spawn_once([[0] * 8 for _ in range(8)])
+    assert a == b
 
 
 def main():
