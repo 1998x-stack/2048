@@ -4,11 +4,15 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Game runtime artifacts
-logs/*.log
+logs/*.log*
 
 # OS
 .DS_Store
-# worktrees
+
+# Worktrees
 .worktrees/

@@ -1,205 +1,75 @@
-<div align="center">
+# 2048 — Python + Pygame
 
-# 2048 <sub>· Python & Pygame</sub>
+[![Python game checks](https://github.com/1998x-stack/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/1998x-stack/2048/actions/workflows/ci.yml)
 
-A classic **2048** game implemented in pure Python with **Pygame** — merge
-equal tiles, chase the 2048 tile, and outlast the board on a harder **8×8 grid**.
+An 8×8 2048 variant written in Python. Use the arrow keys to slide equal tiles together, reach a tile of **2048 or higher**, or keep playing until no legal moves remain. A finished game displays a win/loss overlay; press Enter or Esc to exit.
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Pygame](https://img.shields.io/badge/Pygame-2.x-yellowgreen)](https://www.pygame.org/)
-[![NumPy](https://img.shields.io/badge/NumPy-required-013243)](https://numpy.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-45%2F45%20passed-brightgreen)](https://github.com/1998x-stack/2048)
+## Quick start
 
-[Getting Started](#getting-started) · [Controls](#controls) ·
-[Game Logic](#game-logic) · [Project Structure](#project-structure) ·
-[Testing](#testing) · [Documentation](#documentation) ·
-[Roadmap](#roadmap) · [License](#license)
-
-</div>
-
-A summary of what makes this variant stand out:
-
-- 🏆 **Victory is actually detected** — reaching `2048`+ shows a **You Win!** overlay.
-- 🎬 **Game-over screen** — no more abrupt window close; ENTER / ESC to exit.
-- 🧪 **Headless test suite** — 45 checks across 6 suites; no display required.
-- 🛡️ **Graceful asset loading** — missing fonts/images return a default instead of crashing.
-
----
-
-## Features
-
-- **8×8 grid** — a more challenging board than the classic 4×4.
-- **Correct 2048 rules** — tiles merge once per move; a merged tile never
-  merges again in the same move; only a *valid* move spawns a new tile.
-- **Win / loss states** — reaching `2048`+ wins; a full board with no merges loses.
-- **Page-high styling** — tiles are color-coded by value and the font auto-scales,
-  so even `131072` stays readable.
-- **Configurable** — grid size, tile size, colors, and FPS are centralized in
-  `config/settings.py`; changing `GRID_SIZE` re-scales the whole game.
-- **Logging** — every move and quit is recorded in `logs/game.log`.
-
----
-
-## Getting Started
-
-### Requirements
-
-- **Python 3.9+**
-- **Pygame** and **NumPy**
-
-### Installation
+Requires Python 3.9+ and Pygame 2.x. The game does **not** require NumPy.
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/1998x-stack/2048.git
 cd 2048
-
-# 2. (Recommended) create a virtual environment
 python3 -m venv .venv
-source .venv/bin/activate                # Windows: .venv\Scripts\activate
-
-# 3. Install dependencies
-pip install pygame numpy
-```
-
-> **Slow or unreachable PyPI?** Use the Tsinghua mirror:
->
-> ```bash
-> pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pygame numpy
-> ```
-
-### Run the game
-
-```bash
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python -m pip install 'pygame>=2.5,<3'
 python main.py
 ```
 
-A window opens with two starting tiles already placed. Use the arrow keys to
-merge tiles, aiming for `2048` (or beyond).
+Use the arrow keys to move. A move that leaves the board unchanged does not spawn a tile. Close the window or press Esc to quit.
 
----
+## Rules and architecture
 
-## Controls
+- `src/board.py`: pure Python movement, merging, spawning, and terminal-state checks. It has no Pygame dependency and can be imported by bots or test runners.
+- `src/game_logic.py`: rendering and backward-compatible exports of the board functions. Tile fonts are cached for one Pygame session and invalidated before a new run.
+- `src/game.py`: keyboard events, window lifecycle, and win/loss overlays. The state is checked after every valid move, including when multiple key events are queued in one frame.
+- `config/settings.py`: the default 8×8 board, tile and window sizes, colors, and asset locations.
+- `src/logger.py`: an independent, rotating game logger. Runtime logs are created in `logs/game.log` relative to the repository, regardless of the current working directory, and are not tracked in Git.
 
-| Action               | Key            |
-| -------------------- | -------------- |
-| Move up              | `↑` (Up Arrow)    |
-| Move down            | `↓` (Down Arrow)  |
-| Move left            | `←` (Left Arrow)  |
-| Move right           | `→` (Right Arrow) |
-| Quit the game        | `Esc`           |
-| Exit the finished screen | `Enter` or `Esc` |
+**Variant-specific spawning:** after a valid move, one empty cell is chosen uniformly. The value is chosen from powers of two up to the current maximum tile, with descending normalized weights `weight(2**i) = 2**(1-i)` for `i >= 1`. On an empty board the only value is 2. This is **not** the classic 2048 fixed 2/4 spawn distribution and is **not** a Poisson distribution.
 
----
-
-## Game Logic
-
-- Tiles slide in the pressed direction; equal adjacent tiles **merge once** per move.
-- A tile **spawned by a merge cannot merge again** in the same move.
-- After every **valid** move a new tile is placed in a random empty cell;
-  a move that changes nothing does **not** spawn a tile.
-- **Victory** — any tile reaches `2048` or higher.
-- **Game over** — the board is full and no adjacent tiles are mergeable.
-
-*Spawning weights* use a Poisson-based model over powers of two up to the
-current maximum tile, so larger numbers appear less often.
-
----
-
-## Project Structure
-
-```dir
-.
-├── assets/                     # Bundled game assets
-│   ├── fonts/game_font.ttf     # Tile-number font
-│   └── images/player.png       # Placeholder (future sprites)
-├── config/settings.py          # Grid, window, colors, paths
-├── logs/game.log               # Runtime log (auto-generated)
-├── src/
-│   ├── assets_loader.py        # Image/font loading (graceful on missing files)
-│   ├── event_handler.py        # Quit detection, filtered logging
-│   ├── game.py                 # Main loop, state evaluation, overlays
-│   ├── game_logic.py           # Move/merge/spawn/is-over + rendering
-│   ├── logger.py               # Logging setup
-│   ├── player.py               # Placeholder player class (unused)
-│   └── utils.py                # reset_game, check_victory
-├── tests/                      # 6 headless test suites
-│   ├── test_game_logic.py
-│   ├── test_edge_cases.py
-│   ├── test_render.py
-│   ├── test_game_state.py
-│   ├── test_event_assets.py
-│   └── test_integration.py
-├── main.py                     # Entry point
-├── run_tests.sh                # Runs the full test suite
-├── remove_pycache.sh           # Cleans __pycache__ folders
-├── .gitignore
-├── LICENSE
-└── README.md
-```
-
----
+Tiles merge at most once per move. On a full board with no adjacent equal tiles, the game is over. Reaching 2048 or more wins; this variant gives victory precedence over game-over when evaluating a finished board. No score counter or persistent high-score system is currently implemented.
 
 ## Testing
 
-The suite runs **headlessly** against a dummy SDL driver — no display or window
-needed. Run everything at once:
+Run all checks from the repository root after installing Pygame:
 
 ```bash
-./run_tests.sh
+bash run_tests.sh
 ```
 
-Or run individual suites:
+The runner executes the pure board and logger tests plus the six existing game, render, event, and integration suites. It preserves each test's output and exits immediately on failure. For logic-only tests without installing Pygame:
 
 ```bash
-python3 tests/test_game_logic.py    # core move/merge logic + regression
-python3 tests/test_edge_cases.py    # edge cases (full boards, game over, Poisson)
-python3 tests/test_render.py        # rendering + font-cache restart safety
-python3 tests/test_game_state.py    # victory / game-over evaluation
-python3 tests/test_event_assets.py  # events + asset-loader error handling
-python3 tests/test_integration.py   # end-to-end game loop
+python3 -m unittest discover -s tests -p 'test_board_pure.py' -v
+python3 -m unittest discover -s tests -p 'test_logger.py' -v
 ```
 
----
+`run_tests.sh` defaults `SDL_VIDEODRIVER` and `SDL_AUDIODRIVER` to `dummy`; see [Pygame's headless driver guide](https://www.pygame.org/wiki/DummyVideoDriver). `.github/workflows/ci.yml` runs a syntax check and the full runner on pushes to `main` and on pull requests.
 
-## Configuration
+## Project layout
 
-All settings live in [`config/settings.py`](config/settings.py):
+```text
+assets/                   Bundled font and image
+config/settings.py        Display constants and asset paths
+docs/                     Design notes, review, and plans
+src/board.py              Pure board rules and spawn probabilities
+src/game_logic.py         Pygame tile rendering and compatibility exports
+src/game.py               Application loop and overlays
+src/logger.py             Isolated game logging
+src/assets_loader.py      Image/font fallback handling
+src/event_handler.py      Quit-event detection
+src/utils.py              Victory and reset helpers
+tests/                    Pure, rendering, event, and integration checks
+main.py                   Run the game
+run_tests.sh              Run all tests with failure reporting
+```
 
-| Setting | Default | Purpose |
-| ------- | ------- | ------- |
-| `GRID_SIZE` | `8` | Board size (rows × columns) |
-| `TILE_SIZE` | `80` | Tile width/height in px |
-| `MARGIN` | `5` | Gap between tiles, px |
-| `FPS` | `60` | Frame rate |
-| `TILE_COLORS` | —  | Value→color palette |
-| `FONT_PATH` | — | Path to the bundled font |
+## Next steps
 
----
-
-## Roadmap
-
-- [ ] AI player for automated play
-- [ ] Themes and tile customization
-- [ ] Multiplayer mode
-- [ ] High-score tracking (persistent)
-- [ ] Undo last move
-
----
-
-## Contributing
-
-Contributions, issues, and feature requests are welcome. Fork the repo and open
-a pull request; for larger changes, open an issue first to discuss the design.
-
----
+Potential future features include score tracking, an undo history, an AI player based on the pure board module, and accessibility improvements. See `docs/REVIEW-2026-09-22.md` for the review findings, validation scope, and follow-up plan.
 
 ## License
 
-Released under the [MIT License](LICENSE) © 2024
-[1998x-stack](https://github.com/1998x-stack).
-
----
-
-<div align="center"><sub>Made with ❤️ — merge wisely.</sub></div>
+MIT — see [LICENSE](LICENSE).
