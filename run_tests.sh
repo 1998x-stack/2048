@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Run the full headless test suite for the 2048 game.
-set -e
+# Fail on the first failing suite; preserve stdout/stderr for diagnostics.
+set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "-------------------------------------------"
-for t in test_game_logic test_edge_cases test_render test_game_state test_event_assets test_integration; do
-  echo ">>> $t"
-  python3 "tests/${t}.py" 2>/dev/null | tail -1
+export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-dummy}"
+export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-dummy}"
+
+python3 -m unittest discover -s tests -p 'test_board_pure.py' -v
+for suite in test_game_logic test_edge_cases test_render test_game_state test_event_assets test_integration; do
+  printf '\n>>> %s\n' "$suite"
+  python3 "tests/${suite}.py"
 done
-echo "-------------------------------------------"
-echo "All test suites finished."
+printf '\nAll test suites passed.\n'
