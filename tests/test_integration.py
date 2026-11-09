@@ -53,6 +53,15 @@ def test_empty_board_quits_via_esc():
     run_game(initial_grid=[[0] * 8 for _ in range(8)])
 
 
+def test_replay_from_game_over_starts_fresh_board():
+    _poster(0.4, [
+        pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r),
+        pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE),
+    ])
+    final = run_game(initial_grid=[r[:] for r in GAME_OVER_BOARD])
+    assert sum(tile != 0 for row in final for tile in row) == 2
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     passed = 0

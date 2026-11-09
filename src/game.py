@@ -46,11 +46,19 @@ def _show_overlay(screen, message):
         title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 30))
     )
     hint = pygame.font.Font(None, 30).render(
-        "Press ENTER or ESC to exit", True, (80, 80, 80)
+        "R: replay   Enter/Esc: exit", True, (80, 80, 80)
     )
     screen.blit(
         hint, hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
     )
+
+
+def new_board():
+    """Start with exactly two new tiles."""
+    grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+    add_random_tile(grid)
+    add_random_tile(grid)
+    return grid
 
 
 def run_game(initial_grid=None):
@@ -63,12 +71,7 @@ def run_game(initial_grid=None):
         pygame.display.set_caption(f"2048 Game - {GRID_SIZE}x{GRID_SIZE} Grid")
         clock = pygame.time.Clock()
 
-        grid = initial_grid if initial_grid is not None else [
-            [0] * GRID_SIZE for _ in range(GRID_SIZE)
-        ]
-        if initial_grid is None:
-            add_random_tile(grid)
-            add_random_tile(grid)
+        grid = initial_grid if initial_grid is not None else new_board()
 
         finished, message = evaluate_state(grid)
         running = True
@@ -78,6 +81,12 @@ def run_game(initial_grid=None):
                     log_event("Game quit by user.")
                     running = False
                     break
+
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                    grid = new_board()
+                    finished, message = evaluate_state(grid)
+                    log_event("Replay from fresh board")
+                    continue
 
                 if finished:
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
@@ -103,3 +112,4 @@ def run_game(initial_grid=None):
             clock.tick(FPS)
     finally:
         pygame.quit()
+    return grid

@@ -2,7 +2,7 @@
 
 [![Python game checks](https://github.com/1998x-stack/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/1998x-stack/2048/actions/workflows/ci.yml)
 
-An 8×8 2048 variant written in Python. Use the arrow keys to slide equal tiles together, reach a tile of **2048 or higher**, or keep playing until no legal moves remain. A finished game displays a win/loss overlay; press Enter or Esc to exit.
+An 8×8 2048 variant written in Python. Use the arrow keys to slide equal tiles together, reach a tile of **2048 or higher**, or keep playing until no legal moves remain. A finished game displays a win/loss overlay; press **R** to replay, or Enter/Esc to exit.
 
 ## Quick start
 
@@ -17,7 +17,7 @@ python -m pip install 'pygame>=2.5,<3'
 python main.py
 ```
 
-Use the arrow keys to move. A move that leaves the board unchanged does not spawn a tile. Close the window or press Esc to quit.
+Use the arrow keys to move. A move that leaves the board unchanged does not spawn a tile. Press **R** to restart with exactly two new tiles. Close the window or press Esc to quit.
 
 ## Rules and architecture
 
@@ -30,6 +30,13 @@ Use the arrow keys to move. A move that leaves the board unchanged does not spaw
 **Variant-specific spawning:** after a valid move, one empty cell is chosen uniformly. The value is chosen from powers of two up to the current maximum tile, with descending normalized weights `weight(2**i) = 2**(1-i)` for `i >= 1`. On an empty board the only value is 2. This is **not** the classic 2048 fixed 2/4 spawn distribution and is **not** a Poisson distribution.
 
 Tiles merge at most once per move. On a full board with no adjacent equal tiles, the game is over. Reaching 2048 or more wins; this variant gives victory precedence over game-over when evaluating a finished board. No score counter or persistent high-score system is currently implemented.
+
+## P1: verified replay workflow
+
+Press **R** during play or on the result screen to start a fresh board without
+closing the application. The headless SDL integration suite checks that a
+terminal game restarts with exactly two tiles. This verifies the application
+flow in CI, not the behavior of an untested physical keyboard.
 
 ## Testing
 
